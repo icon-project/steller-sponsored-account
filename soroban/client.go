@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gochain/gochain/v4/log"
 	"github.com/icon-project/centralized-relay/relayer/chains/steller/types"
 	"github.com/stellar/go/txnbuild"
 )
@@ -38,7 +37,7 @@ func New(rpcUrl string, httpUrl string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) SimulateTransaction(txnXdr string, resourceCfg *ResourceConfig) (*TxSimulationResult, error) {
+func (c *Client) SimulateTransaction(txnXdr string) (*TxSimulationResult, error) {
 	simResult := &TxSimulationResult{}
 	if err := c.CallContext(
 		context.Background(),
@@ -216,19 +215,25 @@ func (c *Client) GetAccount(ctx context.Context, address string) (*AccountInfo, 
 	return account, nil
 }
 
-func (c *Client) BeginSponsor(ctx context.Context, req *ExecuteSponsoredRequest) (*TransactionResponse, error) {
+func (c *Client) BeginSponsor(ctx context.Context, req *ExecuteSponsoredRequest) (string, error) {
 	createop := &txnbuild.CreateAccount{
 		Amount:      "0",
 		Destination: req.Address,
 	}
 	account, err := c.GetAccount(ctx, req.Key.Address())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	source := txnbuild.NewSimpleAccount(account.AccountID, account.Sequence)
+	seq, err := strconv.ParseInt(account.Sequence, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	source := txnbuild.NewSimpleAccount(req.Key.Address(), seq)
 	txParam := txnbuild.TransactionParams{
-		SourceAccount:        &source,
-		IncrementSequenceNum: true,
+		SourceAccount: &source,
+		Preconditions: txnbuild.Preconditions{
+			TimeBounds: txnbuild.NewInfiniteTimeout(),
+		},
 		Operations: []txnbuild.Operation{
 			&txnbuild.BeginSponsoringFutureReserves{
 				SourceAccount: source.AccountID,
@@ -242,24 +247,15 @@ func (c *Client) BeginSponsor(ctx context.Context, req *ExecuteSponsoredRequest)
 	}
 	tx, err := txnbuild.NewTransaction(txParam)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	signedTx, err := tx.Sign(req.NetworkPassphrase, req.Key)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	txXDR, err := signedTx.Base64()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	simRes, err := c.SimulateTransaction(txXDR, nil)
-	if err != nil {
-		return nil, err
-	}
-	log.Infof("simulated tx: %+v", simRes)
-	res, err := c.SubmitTransactionXDR(ctx, txXDR)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return txXDR, nil
 }

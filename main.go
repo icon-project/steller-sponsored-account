@@ -11,9 +11,9 @@ import (
 )
 
 type config struct {
-	Soroban url.URL `env:"SOROBAN_RPC,notEmpty"`
-	Horizon url.URL `env:"HORIZON_URL,notEmpty"`
-	Seed    string  `env:"SEED,notEmpty"`
+	Soroban url.URL `env:"SOROBAN_RPC_URL,notEmpty"`
+	Horizon url.URL `env:"HORIZON_RPC_URL,notEmpty"`
+	Seed    string  `env:"KEY_SEED,notEmpty"`
 }
 
 var (

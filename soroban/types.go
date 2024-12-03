@@ -74,12 +74,11 @@ type NetworkInfo struct {
 
 type AccountInfo struct {
 	AccountID string `json:"account_id"`
-	Sequence  int64  `json:"sequence"`
+	Sequence  string `json:"sequence"`
 }
 
 type ExecuteSponsoredRequest struct {
 	NetworkPassphrase string
 	Address           string
-	Data              string
 	Key               *keypair.Full
 }
