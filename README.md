@@ -7,7 +7,7 @@
 Base URL: `https://ciihnqaqiomjdoicuy5rgwmy5m0vxanz.lambda-url.us-east-1.on.aws/`
 
 ```bash
-curl -X POST $BASE_URL -d '{"address": "GCFAPEJDCDCYSZAFTRWD2L2X3ARKUWJH7LVDN5ZWSLGF6NOQNWVNIR2X"}'
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{"address": "GCFAPEJDCDCYSZAFTRWD2L2X3ARKUWJH7LVDN5ZWSLGF6NOQNWVNIR2X"}'
 ```
 
 Response:
@@ -21,7 +21,7 @@ AAAAAgAAAACKB5EjEMWJZAWcbD0vV9giqlkn+uo29zaSzF810G2q1AAAAAAAE4kfAAAAAAAAAAEAAAAA
 Grab the signed XDR transaction from the response and sign it with the account and submit.
 
 ```bash
-curl -X POST $BASE_URL -d '{"data": "AAA..."}'
+curl -X POST -H 'Content-Type: application/json' $BASE_URL -d '{"data": "AAA..."}'
 ```
 
 Response:
