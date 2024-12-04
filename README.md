@@ -18,10 +18,10 @@ AAAAAgAAAACKB5EjEMWJZAWcbD0vV9giqlkn+uo29zaSzF810G2q1AAAAAAAE4kfAAAAAAAAAAEAAAAA
 
 ### Sign transaction
 
-Grab the signed transaction above from the response and sign it with the account and submit.
+Grab the signed XDR transaction from the response and sign it with the account and submit.
 
 ```bash
-curl -X POST $BASE_URL -d '{"data": "AAAAAgAAAACKB5EjEMWJZAWcbD0vV9giqlkn+uo29zaSzF810G2q1AAAAAAAE4kfAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAABAAAAAIoHkSMQxYlkBZxsPS9X2CKqWSf66jb3NpLMXzXQbarUAAAAEAAAAACKB5EjEMWJZAWcbD0vV9giqlkn+uo29zaSzF810G2q1AAAAAAAAAAAAAAAAIoHkSMQxYlkBZxsPS9X2CKqWSf66jb3NpLMXzXQbarUAAAAAAAAAAAAAAABAAAAAIoHkSMQxYlkBZxsPS9X2CKqWSf66jb3NpLMXzXQbarUAAAAEQAAAAAAAAAB0G2q1AAAAEDlth/eKuCmdtDWTllTKdHR591a+yaaF95ZAnIdS25ZdqDEkIYjZW757sFekR+0O4e/xrNr414klY/yUMpoARoI"}'
+curl -X POST $BASE_URL -d '{"data": "AAA..."}'
 ```
 
 Response:
