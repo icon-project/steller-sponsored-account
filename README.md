@@ -12,6 +12,8 @@ Public key: `GCV5PJ4H57MZFRH5GM3E3CNFLWQURNFNIHQOYGRQ7JHGWJLAR2SFVZO6`
 
 Sign the sponsored account transaction with the wallet you want to be sponsored.
 
+Send a POST request with the XDR base64 encoded transaction data.
+
 ```bash
 curl -X POST -H 'Content-Type: application/json' $BASE_URL -d '{"data": "AAA..."}'
 ```
@@ -20,5 +22,6 @@ Response:
 
 ```text
 Status: 200 OK
-Hash: 0x7b2...
+Context-Type: text/plain
+Body: 0x7b2...
 ```

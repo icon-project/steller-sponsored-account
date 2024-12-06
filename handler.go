@@ -29,12 +29,6 @@ const (
 	ErrorNotFound         = "Not Found"
 )
 
-var allowedOps = []xdr.OperationType{
-	xdr.OperationTypeCreateAccount,
-	xdr.OperationTypeBeginSponsoringFutureReserves,
-	xdr.OperationTypeEndSponsoringFutureReserves,
-}
-
 type route struct {
 	Handler func(ctx context.Context, req events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse
 }
@@ -89,6 +83,13 @@ func handlePost(ctx context.Context, req events.LambdaFunctionURLRequest) events
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 400,
 			Body:       ErrorSourceMismatch,
+			Headers:    headers,
+		}
+	}
+	if len(txXDR.Operations()) != 3 {
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 400,
+			Body:       ErrorInvalidXDR,
 			Headers:    headers,
 		}
 	}
