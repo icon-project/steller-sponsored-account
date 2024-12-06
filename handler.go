@@ -12,8 +12,7 @@ import (
 )
 
 type request struct {
-	Address string `json:"address"`
-	Data    string `json:"data"`
+	Data string `json:"data"`
 }
 
 var headers = map[string]string{
@@ -124,7 +123,7 @@ func handlePost(ctx context.Context, req events.LambdaFunctionURLRequest) events
 			}
 		}
 	}
-	signedXDR, err := txXDR.Sign(NetworkPassphrase, key)
+	signedXDR, err := txXDR.Sign(networkPassphrase, key)
 	if err != nil {
 		log.Printf("error signing xdr: %v", err)
 		return events.LambdaFunctionURLResponse{

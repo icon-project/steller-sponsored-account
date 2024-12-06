@@ -2,13 +2,12 @@
 
 ## API
 
-### Create Sponsored Account
-
 Base URL: `https://ciihnqaqiomjdoicuy5rgwmy5m0vxanz.lambda-url.us-east-1.on.aws/`
+Public key: `GCV5PJ4H57MZFRH5GM3E3CNFLWQURNFNIHQOYGRQ7JHGWJLAR2SFVZO6`
 
 ### Sign transaction
 
-Grab the signed XDR transaction from the response and sign it with the account and submit.
+Sign the sponsored account transaction with the wallet you want to be sponsored.
 
 ```bash
 curl -X POST -H 'Content-Type: application/json' $BASE_URL -d '{"data": "AAA..."}'

@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/stellar/go/keypair"
 )
 
 const (
@@ -165,4 +167,8 @@ func (c *Client) GetNetworkInfo() (*NetworkInfo, error) {
 		return nil, err
 	}
 	return network, nil
+}
+
+func (c *Client) LoadKeystore(seed string) *keypair.Full {
+	return keypair.MustParseFull(seed)
 }

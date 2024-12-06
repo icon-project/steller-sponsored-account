@@ -4,7 +4,7 @@ set -e
 
 ROLE_NAME="lambda-basic-execution-role"
 ZIP_FILE="main.zip"
-LAMBDA_NAME="steller-sponsored-account-test"
+LAMBDA_NAME="steller-sponsored-account"
 
 build() {
   echo "Building..."

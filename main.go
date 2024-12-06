@@ -20,7 +20,7 @@ var (
 	cfg               config
 	sorobanClient     *soroban.Client
 	key               *keypair.Full
-	NetworkPassphrase string
+	networkPassphrase string
 )
 
 func init() {
@@ -35,12 +35,9 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	NetworkPassphrase = networkInfo.Passphrase
+	networkPassphrase = networkInfo.Passphrase
 	sorobanClient = client
-	key, err = soroban.LoadKeystore(cfg.Seed)
-	if err != nil {
-		log.Fatal(err)
-	}
+	key = client.LoadKeystore(cfg.Seed)
 }
 
 func main() {
