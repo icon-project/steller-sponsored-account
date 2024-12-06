@@ -1,8 +1,11 @@
 # Stellar sponsored account
 
-## API
+This is a Lambda function that signs a transaction with a sponsored account and submits it to the Stellar network.
+
+## Usage
 
 Base URL: `https://ciihnqaqiomjdoicuy5rgwmy5m0vxanz.lambda-url.us-east-1.on.aws/`
+
 Public key: `GCV5PJ4H57MZFRH5GM3E3CNFLWQURNFNIHQOYGRQ7JHGWJLAR2SFVZO6`
 
 ### Sign transaction

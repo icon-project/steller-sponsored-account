@@ -28,11 +28,10 @@ type Client struct {
 	httpUrl   string
 }
 
-func New(rpcUrl string, httpUrl string) (*Client, error) {
+func New(rpcUrl string) (*Client, error) {
 	return &Client{
-		http:    &http.Client{},
-		rpcUrl:  rpcUrl,
-		httpUrl: httpUrl,
+		http:   &http.Client{},
+		rpcUrl: rpcUrl,
 	}, nil
 }
 

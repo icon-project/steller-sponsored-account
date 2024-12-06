@@ -12,7 +12,6 @@ import (
 
 type config struct {
 	Soroban url.URL `env:"SOROBAN_RPC_URL,notEmpty"`
-	Horizon url.URL `env:"HORIZON_RPC_URL,notEmpty"`
 	Seed    string  `env:"KEY_SEED,notEmpty"`
 }
 
@@ -27,7 +26,7 @@ func init() {
 	if err := env.Parse(&cfg); err != nil {
 		log.Fatal(err)
 	}
-	client, err := soroban.New(cfg.Soroban.String(), cfg.Horizon.String())
+	client, err := soroban.New(cfg.Soroban.String())
 	if err != nil {
 		log.Fatal(err)
 	}
