@@ -4,7 +4,7 @@ set -e
 
 ROLE_NAME="lambda-basic-execution-role"
 ZIP_FILE="main.zip"
-LAMBDA_NAME="steller-sponsored-account"
+LAMBDA_NAME="steller-sponsored-account-test"
 
 build() {
   echo "Building..."
@@ -37,8 +37,11 @@ create_lambda_basic_execution_role() {
     aws iam attach-role-policy \
       --role-name $ROLE_NAME \
       --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    aws iam attach-role-policy \
+      --role-name $ROLE_NAME \
+      --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
   else
-    echo "Role $ROLE_NAME already exists."
+    echo "Role $ROLE_NAME already exists. Skipping..."
   fi
 }
 
@@ -49,7 +52,8 @@ create_lambda_function() {
   aws lambda create-function --function-name $LAMBDA_NAME \
     --zip-file fileb://$ZIP_FILE --handler bootstrap \
     --runtime provided.al2 --role $ROLE_ARN \
-    --environment '{"Variables": '$ENV_VARS'}'
+    --environment '{"Variables": '$ENV_VARS'}' \
+    --timeout 15
 }
 
 update_lambda_function() {
@@ -63,10 +67,21 @@ update_lambda_function() {
 
 create_lambda_function_url() {
   echo "Creating Lambda function URL..."
-  aws lambda create-function-url-config --function-name $LAMBDA_NAME --auth-type NONE
+  aws lambda create-function-url-config --function-name $LAMBDA_NAME --auth-type NONE \
+    --cors '{
+      "AllowOrigins": ["*"],
+      "AllowMethods": ["POST"],
+      "AllowHeaders": ["Content-Type"]
+    }'
   FUNCTION_URL=$(aws lambda get-function-url-config --function-name $LAMBDA_NAME --query 'FunctionUrl' --output text)
   aws lambda add-permission --function-name $LAMBDA_NAME --statement-id function-url-permission --action lambda:InvokeFunctionUrl --principal '*' --function-url-auth-type NONE
   echo "Lambda Function URL: $FUNCTION_URL"
+}
+
+clean() {
+  echo "Cleaning up..."
+  rm -f $ZIP_FILE
+  rm -f bootstrap
 }
 
 deploy() {
@@ -77,8 +92,9 @@ deploy() {
     update_lambda_function
   else
     create_lambda_function
+    create_lambda_function_url
   fi
-  create_lambda_function_url
 }
 
 deploy
+clean

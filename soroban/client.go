@@ -11,9 +11,6 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
-
-	"github.com/icon-project/centralized-relay/relayer/chains/steller/types"
-	"github.com/stellar/go/txnbuild"
 )
 
 const (
@@ -35,38 +32,6 @@ func New(rpcUrl string, httpUrl string) (*Client, error) {
 		rpcUrl:  rpcUrl,
 		httpUrl: httpUrl,
 	}, nil
-}
-
-func (c *Client) SimulateTransaction(txnXdr string) (*TxSimulationResult, error) {
-	simResult := &TxSimulationResult{}
-	if err := c.CallContext(
-		context.Background(),
-		simResult,
-		"simulateTransaction",
-		map[string]interface{}{
-			"transaction": txnXdr,
-		},
-	); err != nil {
-		return nil, err
-	}
-
-	return simResult, nil
-}
-
-func (c *Client) GetEvents(ctx context.Context, eventFilter types.GetEventFilter) (*LedgerEventResponse, error) {
-	ledgerEvents := &LedgerEventResponse{}
-	if err := c.CallContext(ctx, ledgerEvents, "getEvents", eventFilter); err != nil {
-		return nil, err
-	}
-	return ledgerEvents, nil
-}
-
-func (c *Client) GetLatestLedger(ctx context.Context) (*LatestLedgerResponse, error) {
-	ledgerRes := &LatestLedgerResponse{}
-	if err := c.CallContext(ctx, ledgerRes, "getLatestLedger", nil); err != nil {
-		return nil, err
-	}
-	return ledgerRes, nil
 }
 
 func (c *Client) CallContext(ctx context.Context, result interface{}, method string, params interface{}) error {
@@ -200,62 +165,4 @@ func (c *Client) GetNetworkInfo() (*NetworkInfo, error) {
 		return nil, err
 	}
 	return network, nil
-}
-
-func (c *Client) GetAccount(ctx context.Context, address string) (*AccountInfo, error) {
-	account := &AccountInfo{}
-	res, err := c.http.Get(c.httpUrl + "/accounts/" + address)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if err := json.NewDecoder(res.Body).Decode(account); err != nil {
-		return nil, err
-	}
-	return account, nil
-}
-
-func (c *Client) BeginSponsor(ctx context.Context, req *ExecuteSponsoredRequest) (string, error) {
-	createop := &txnbuild.CreateAccount{
-		Amount:      "0",
-		Destination: req.Address,
-	}
-	account, err := c.GetAccount(ctx, req.Key.Address())
-	if err != nil {
-		return "", err
-	}
-	seq, err := strconv.ParseInt(account.Sequence, 10, 64)
-	if err != nil {
-		return "", err
-	}
-	source := txnbuild.NewSimpleAccount(req.Key.Address(), seq)
-	txParam := txnbuild.TransactionParams{
-		SourceAccount: &source,
-		Preconditions: txnbuild.Preconditions{
-			TimeBounds: txnbuild.NewInfiniteTimeout(),
-		},
-		Operations: []txnbuild.Operation{
-			&txnbuild.BeginSponsoringFutureReserves{
-				SourceAccount: source.AccountID,
-				SponsoredID:   req.Address,
-			},
-			createop,
-			&txnbuild.EndSponsoringFutureReserves{
-				SourceAccount: source.AccountID,
-			},
-		},
-	}
-	tx, err := txnbuild.NewTransaction(txParam)
-	if err != nil {
-		return "", err
-	}
-	signedTx, err := tx.Sign(req.NetworkPassphrase, req.Key)
-	if err != nil {
-		return "", err
-	}
-	txXDR, err := signedTx.Base64()
-	if err != nil {
-		return "", err
-	}
-	return txXDR, nil
 }
