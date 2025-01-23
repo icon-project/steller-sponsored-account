@@ -37,6 +37,9 @@ var routes = map[string]map[string]route{
 	"/": {
 		http.MethodPost: {handlePost},
 	},
+	"/revoke": {
+		http.MethodGet: {handleRevokeRequest},
+	},
 }
 
 func handleRequest(ctx context.Context, req events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
@@ -136,6 +139,66 @@ func handlePost(ctx context.Context, req events.LambdaFunctionURLRequest) events
 	xdrTxBase64, err := signedXDR.Base64()
 	if err != nil {
 		log.Printf("error encoding xdr: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
+	}
+	res, err := sorobanClient.SubmitTransactionXDR(ctx, xdrTxBase64)
+	if err != nil {
+		log.Printf("error submitting transaction: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSubmitting,
+			Headers:    headers,
+		}
+	}
+	return events.LambdaFunctionURLResponse{
+		StatusCode: 200,
+		Body:       res.Hash,
+		Headers:    headers,
+	}
+}
+
+func handleRevokeRequest(ctx context.Context, req events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse {
+	addr := key.Address()
+	revokeOp := []txnbuild.Operation{
+		&txnbuild.RevokeSponsorship{
+			SponsorshipType: txnbuild.RevokeSponsorshipTypeAccount,
+			Account:         &addr,
+		},
+	}
+	txParams := txnbuild.TransactionParams{
+		SourceAccount:        &txnbuild.SimpleAccount{AccountID: key.Address()},
+		Operations:           revokeOp,
+		IncrementSequenceNum: true,
+		BaseFee:              txnbuild.MinBaseFee,
+		Preconditions: txnbuild.Preconditions{
+			TimeBounds: txnbuild.NewInfiniteTimeout(),
+		},
+	}
+	tx, err := txnbuild.NewTransaction(txParams)
+	if err != nil {
+		log.Printf("error creating transaction: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
+	}
+	signedTx, err := tx.Sign(networkPassphrase, key)
+	if err != nil {
+		log.Printf("error signing transaction: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
+	}
+	xdrTxBase64, err := signedTx.Base64()
+	if err != nil {
+		log.Printf("error encoding transaction: %v", err)
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 500,
 			Body:       ErrorSponsorship,
