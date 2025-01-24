@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stellar/go/txnbuild"
@@ -24,6 +26,8 @@ const (
 	ErrorInvalidXDR       = "Invalid XDR"
 	ErrorSourceMismatch   = "Source account does not match"
 	ErrorSponsorship      = "Error beginning sponsorship"
+	ErrorRevoking         = "Error revoking sponsorship"
+	ErrorNoSponsorship    = "No sponsorship found"
 	ErrorSubmitting       = "Error submitting transaction"
 	ErrorMethodNotAllowed = "Method Not Allowed"
 	ErrorNotFound         = "Not Found"
@@ -162,16 +166,51 @@ func handlePost(ctx context.Context, req events.LambdaFunctionURLRequest) events
 }
 
 func handleRevokeRequest(ctx context.Context, req events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse {
-	addr := key.Address()
-	revokeOp := []txnbuild.Operation{
-		&txnbuild.RevokeSponsorship{
+	accountInfo, err := sorobanClient.GetAccount(ctx, key.Address())
+	if err != nil {
+		log.Printf("error getting account info: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
+	}
+	accounts, err := sorobanClient.GetCreateAccountOperation(ctx, key.Address())
+	if err != nil {
+		log.Printf("error getting account operations: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
+	}
+	if len(accounts) == 0 {
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 400,
+			Body:       ErrorNoSponsorship,
+			Headers:    headers,
+		}
+	}
+	revokeOps := []txnbuild.Operation{}
+	for _, account := range accounts {
+		revokeOps = append(revokeOps, &txnbuild.RevokeSponsorship{
+			SourceAccount:   key.Address(),
+			Account:         &account,
 			SponsorshipType: txnbuild.RevokeSponsorshipTypeAccount,
-			Account:         &addr,
-		},
+		})
+	}
+	sequence, err := strconv.ParseInt(accountInfo.Sequence, 10, 64)
+	if err != nil {
+		log.Printf("error parsing sequence: %v", err)
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 500,
+			Body:       ErrorSponsorship,
+			Headers:    headers,
+		}
 	}
 	txParams := txnbuild.TransactionParams{
-		SourceAccount:        &txnbuild.SimpleAccount{AccountID: key.Address()},
-		Operations:           revokeOp,
+		SourceAccount:        &txnbuild.SimpleAccount{AccountID: accountInfo.AccountID, Sequence: sequence},
+		Operations:           revokeOps,
 		IncrementSequenceNum: true,
 		BaseFee:              txnbuild.MinBaseFee,
 		Preconditions: txnbuild.Preconditions{
@@ -205,6 +244,7 @@ func handleRevokeRequest(ctx context.Context, req events.LambdaFunctionURLReques
 			Headers:    headers,
 		}
 	}
+	fmt.Println(xdrTxBase64)
 	res, err := sorobanClient.SubmitTransactionXDR(ctx, xdrTxBase64)
 	if err != nil {
 		log.Printf("error submitting transaction: %v", err)
@@ -214,6 +254,7 @@ func handleRevokeRequest(ctx context.Context, req events.LambdaFunctionURLReques
 			Headers:    headers,
 		}
 	}
+	log.Printf("revoked sponsorship result: %v", res.ResultXdr)
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       res.Hash,
