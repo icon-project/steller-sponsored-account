@@ -186,13 +186,15 @@ func (c *Client) GetAccount(ctx context.Context, address string) (*AccountInfo, 
 	return account, nil
 }
 
-func (c *Client) GetCreateAccountOperation(ctx context.Context, account string) ([]string, error) {
+func (c *Client) GetCreateAccountOperation(ctx context.Context, account, limit, order string) ([]AccountInfo, error) {
 	ops := struct {
 		Embedded struct {
-			Records []AccountOperation `json:"records"`
+			Records []AccountSponsored `json:"records"`
 		} `json:"_embedded"`
 	}{}
-	res, err := c.http.Get(c.httpUrl + "/accounts/" + account + "/operations?limit=10&include_failed=false")
+
+	url := fmt.Sprintf("%s/accounts?sponsor=%s&limit=%s&order=%s&include_failed=false", c.httpUrl, account, limit, order)
+	res, err := c.http.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -200,10 +202,14 @@ func (c *Client) GetCreateAccountOperation(ctx context.Context, account string) 
 	if err := json.NewDecoder(res.Body).Decode(&ops); err != nil {
 		return nil, err
 	}
-	var accounts []string
+	var accounts []AccountInfo
 	for _, op := range ops.Embedded.Records {
-		if op.Sponsor == account && op.Type == "create_account" {
-			accounts = append(accounts, op.AccountID)
+		if op.Sponsor == account {
+			accounts = append(accounts, AccountInfo{
+				AccountID: op.AccountID,
+				Sponser:   op.Sponsor,
+				Balance:   op.Balances,
+			})
 		}
 	}
 	return accounts, nil

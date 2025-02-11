@@ -71,10 +71,18 @@ func (err HTTPError) Error() string {
 type AccountInfo struct {
 	AccountID string `json:"account_id"`
 	Sequence  string `json:"sequence"`
+	Sponser   string `json:"sponsor"`
+	Balance   []struct {
+		AssetType string `json:"asset_type"`
+		Balance   string `json:"balance"`
+	} `json:"balances"`
 }
 
-type AccountOperation struct {
-	AccountID string `json:"account"`
+type AccountSponsored struct {
+	AccountID string `json:"account_id"`
 	Sponsor   string `json:"sponsor"`
-	Type      string `json:"type"`
+	Balances  []struct {
+		AssetType string `json:"asset_type"`
+		Balance   string `json:"balance"`
+	} `json:"balances"`
 }
