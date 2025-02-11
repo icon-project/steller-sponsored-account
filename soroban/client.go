@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -28,10 +29,11 @@ type Client struct {
 	httpUrl   string
 }
 
-func New(rpcUrl string) (*Client, error) {
+func New(rpcURL, httpURL string) (*Client, error) {
 	return &Client{
-		http:   &http.Client{},
-		rpcUrl: rpcUrl,
+		http:    &http.Client{},
+		rpcUrl:  rpcURL,
+		httpUrl: httpURL,
 	}, nil
 }
 
@@ -132,29 +134,28 @@ func (c *Client) SubmitTransactionXDR(ctx context.Context, txXDR string) (*Trans
 	if err := c.CallContext(ctx, txn, "sendTransaction", params); err != nil {
 		return nil, err
 	}
+	log.Printf("txn hash: %s", txn.Hash)
 	return c.waitForSuccess(ctx, txn.Hash)
 }
 
 func (c *Client) waitForSuccess(ctx context.Context, txHash string) (*TransactionResponse, error) {
-	cntx, cncl := context.WithTimeout(ctx, time.Second*20)
-	defer cncl()
-	ticker := time.NewTicker(time.Millisecond * 500)
+	timeout := time.After(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
-		case <-cntx.Done():
-			return nil, cntx.Err()
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for transaction success")
 		case <-ticker.C:
-			txnResp, err := c.GetTransaction(cntx, txHash)
+			txn, err := c.GetTransaction(ctx, txHash)
 			if err != nil {
-				continue
+				return nil, err
 			}
-			if txnResp.Status == failedStatus {
-				return nil, fmt.Errorf("txn failed with result xdr: %s", txnResp.ResultXdr)
-			}
-			if txnResp.Status == successStatus {
-				txnResp.Hash = txHash
-				return txnResp, nil
+			switch txn.Status {
+			case successStatus:
+				return txn, nil
+			case failedStatus:
+				return nil, fmt.Errorf("transaction failed: %s", txn.ResultXdr)
 			}
 		}
 	}
@@ -170,4 +171,46 @@ func (c *Client) GetNetworkInfo() (*NetworkInfo, error) {
 
 func (c *Client) LoadKeystore(seed string) *keypair.Full {
 	return keypair.MustParseFull(seed)
+}
+
+func (c *Client) GetAccount(ctx context.Context, address string) (*AccountInfo, error) {
+	account := &AccountInfo{}
+	res, err := c.http.Get(c.httpUrl + "/accounts/" + address)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if err := json.NewDecoder(res.Body).Decode(account); err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
+func (c *Client) GetCreateAccountOperation(ctx context.Context, account, limit, order string) ([]AccountInfo, error) {
+	ops := struct {
+		Embedded struct {
+			Records []AccountSponsored `json:"records"`
+		} `json:"_embedded"`
+	}{}
+
+	url := fmt.Sprintf("%s/accounts?sponsor=%s&limit=%s&order=%s&include_failed=false", c.httpUrl, account, limit, order)
+	res, err := c.http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if err := json.NewDecoder(res.Body).Decode(&ops); err != nil {
+		return nil, err
+	}
+	var accounts []AccountInfo
+	for _, op := range ops.Embedded.Records {
+		if op.Sponsor == account {
+			accounts = append(accounts, AccountInfo{
+				AccountID: op.AccountID,
+				Sponser:   op.Sponsor,
+				Balance:   op.Balances,
+			})
+		}
+	}
+	return accounts, nil
 }

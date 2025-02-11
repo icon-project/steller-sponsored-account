@@ -67,3 +67,22 @@ func (err HTTPError) Error() string {
 	}
 	return fmt.Sprintf("%v: %s", err.Status, err.Body)
 }
+
+type AccountInfo struct {
+	AccountID string `json:"account_id"`
+	Sequence  string `json:"sequence"`
+	Sponser   string `json:"sponsor"`
+	Balance   []struct {
+		AssetType string `json:"asset_type"`
+		Balance   string `json:"balance"`
+	} `json:"balances"`
+}
+
+type AccountSponsored struct {
+	AccountID string `json:"account_id"`
+	Sponsor   string `json:"sponsor"`
+	Balances  []struct {
+		AssetType string `json:"asset_type"`
+		Balance   string `json:"balance"`
+	} `json:"balances"`
+}
